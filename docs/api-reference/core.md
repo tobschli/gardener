@@ -36,6 +36,8 @@ Resource Types:
 </li><li>
 <a href="#core.gardener.cloud/v1beta1.Seed">Seed</a>
 </li><li>
+<a href="#core.gardener.cloud/v1beta1.SeedBinding">SeedBinding</a>
+</li><li>
 <a href="#core.gardener.cloud/v1beta1.Shoot">Shoot</a>
 </li><li>
 <a href="#core.gardener.cloud/v1beta1.ShootState">ShootState</a>
@@ -1676,6 +1678,82 @@ SeedStatus
 </td>
 <td>
 <p>Status contains the status of this installation.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="core.gardener.cloud/v1beta1.SeedBinding">SeedBinding
+</h3>
+<p>
+<p>SeedBinding represents a binding to a seed.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>apiVersion</code></br>
+string</td>
+<td>
+<code>
+core.gardener.cloud/v1beta1
+</code>
+</td>
+</tr>
+<tr>
+<td>
+<code>kind</code></br>
+string
+</td>
+<td><code>SeedBinding</code></td>
+</tr>
+<tr>
+<td>
+<code>metadata</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#objectmeta-v1-meta">
+Kubernetes meta/v1.ObjectMeta
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Standard object metadata.</p>
+Refer to the Kubernetes API documentation for the fields of the
+<code>metadata</code> field.
+</td>
+</tr>
+<tr>
+<td>
+<code>taintSeed</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+<p>TaintSeed determines if the SeedBinding should
+add a taint to the targeted seed(s)</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>seedSelector</code></br>
+<em>
+<a href="#core.gardener.cloud/v1beta1.SeedSelector">
+SeedSelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SeedSelector is a selector for
+one or more seeds that the scheduling should be restricted to.
+If it is used, it is not possible to use the SeedRef.</p>
 </td>
 </tr>
 </tbody>
@@ -9717,6 +9795,7 @@ string
 </h3>
 <p>
 (<em>Appears on:</em>
+<a href="#core.gardener.cloud/v1beta1.SeedBinding">SeedBinding</a>, 
 <a href="#core.gardener.cloud/v1beta1.CloudProfileSpec">CloudProfileSpec</a>, 
 <a href="#core.gardener.cloud/v1beta1.ExposureClassScheduling">ExposureClassScheduling</a>, 
 <a href="#core.gardener.cloud/v1beta1.ShootSpec">ShootSpec</a>)

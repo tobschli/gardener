@@ -1,0 +1,9 @@
+apiVersion: core.gardener.cloud/v1beta1
+kind: SeedBinding
+metadata:
+  name: privateseed-provider-1
+  # namespace: garden-local
+taintSeed: false
+seedSelector:
+  matchLabels:
+    foo: bar

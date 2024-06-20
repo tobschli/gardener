@@ -227,6 +227,20 @@ func (mr *MockCoreV1beta1InterfaceMockRecorder) SecretBindings(arg0 any) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SecretBindings", reflect.TypeOf((*MockCoreV1beta1Interface)(nil).SecretBindings), arg0)
 }
 
+// SeedBindings mocks base method.
+func (m *MockCoreV1beta1Interface) SeedBindings(arg0 string) v1beta10.SeedBindingInterface {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SeedBindings", arg0)
+	ret0, _ := ret[0].(v1beta10.SeedBindingInterface)
+	return ret0
+}
+
+// SeedBindings indicates an expected call of SeedBindings.
+func (mr *MockCoreV1beta1InterfaceMockRecorder) SeedBindings(arg0 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SeedBindings", reflect.TypeOf((*MockCoreV1beta1Interface)(nil).SeedBindings), arg0)
+}
+
 // Seeds mocks base method.
 func (m *MockCoreV1beta1Interface) Seeds() v1beta10.SeedInterface {
 	m.ctrl.T.Helper()

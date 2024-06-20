@@ -30,6 +30,7 @@ import (
 	quotastore "github.com/gardener/gardener/pkg/apiserver/registry/core/quota/storage"
 	secretbindingstore "github.com/gardener/gardener/pkg/apiserver/registry/core/secretbinding/storage"
 	seedstore "github.com/gardener/gardener/pkg/apiserver/registry/core/seed/storage"
+	seedbindingsstorage "github.com/gardener/gardener/pkg/apiserver/registry/core/seedbinding/storage"
 	shootstore "github.com/gardener/gardener/pkg/apiserver/registry/core/shoot/storage"
 	shootstatestore "github.com/gardener/gardener/pkg/apiserver/registry/core/shootstate/storage"
 	gardencoreinformers "github.com/gardener/gardener/pkg/client/core/informers/externalversions"
@@ -108,6 +109,9 @@ func (p StorageProvider) v1beta1Storage(restOptionsGetter generic.RESTOptionsGet
 
 	secretBindingStorage := secretbindingstore.NewStorage(restOptionsGetter)
 	storage["secretbindings"] = secretBindingStorage.SecretBinding
+
+	seedBindingStorage := seedbindingsstorage.NewStorage(restOptionsGetter)
+	storage["seedbindings"] = seedBindingStorage.SeedBinding
 
 	seedStorage := seedstore.NewStorage(restOptionsGetter)
 	storage["seeds"] = seedStorage.Seed
