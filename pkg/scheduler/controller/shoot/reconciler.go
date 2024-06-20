@@ -135,12 +135,22 @@ func (r *Reconciler) determineSeed(
 	if err := r.Client.Get(ctx, client.ObjectKey{Name: shoot.Spec.CloudProfileName}, cloudProfile); err != nil {
 		return nil, err
 	}
+
+	seedBindings := &gardencorev1beta1.SeedBindingList{}
+	if err := r.Client.List(ctx, seedBindings); err != nil {
+		return nil, err
+	}
+
 	regionConfig, err := r.getRegionConfigMap(ctx, log, cloudProfile)
 	if err != nil {
 		return nil, err
 	}
 
 	filteredSeeds, err := filterUsableSeeds(seedList.Items)
+	if err != nil {
+		return nil, err
+	}
+	filteredSeeds, err = filterBindedSeeds(filteredSeeds, seedBindings.Items)
 	if err != nil {
 		return nil, err
 	}
@@ -169,6 +179,23 @@ func (r *Reconciler) determineSeed(
 		return nil, err
 	}
 	return getSeedWithLeastShootsDeployed(filteredSeeds, shootList)
+}
+
+func filterBindedSeeds(seedList []gardencorev1beta1.Seed, bindings []gardencorev1beta1.SeedBinding) ([]gardencorev1beta1.Seed, error) {
+	if len(bindings) == 0 {
+		return seedList, nil
+	}
+	matchingSeeds := seedList
+
+	var err error
+
+	for _, binding := range bindings {
+		matchingSeeds, err = filterSeedsMatchingLabelSelector(matchingSeeds, binding.SeedSelector, "SeedBinding")
+		if err != nil {
+			return nil, err
+		}
+	}
+	return matchingSeeds, nil
 }
 
 func (r *Reconciler) getRegionConfigMap(ctx context.Context, log logr.Logger, cloudProfile *gardencorev1beta1.CloudProfile) (*corev1.ConfigMap, error) {
