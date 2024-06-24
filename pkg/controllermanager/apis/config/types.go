@@ -61,6 +61,8 @@ type ControllerManagerControllerConfiguration struct {
 	SecretBinding *SecretBindingControllerConfiguration
 	// CredentialsBinding defines the configuration of the CredentialsBinding controller.
 	CredentialsBinding *CredentialsBindingControllerConfiguration
+	// SecretBinding defines the configuration of the SecretBinding controller.
+	SeedBinding *SeedBindingControllerConfiguration
 	// Seed defines the configuration of the Seed controller.
 	Seed *SeedControllerConfiguration
 	// SeedExtensionsCheck defines the configuration of the SeedExtensionsCheck controller.
@@ -194,6 +196,14 @@ type SecretBindingControllerConfiguration struct {
 // CredentialsBindingControllerConfiguration defines the configuration of the
 // CredentialsBinding controller.
 type CredentialsBindingControllerConfiguration struct {
+	// ConcurrentSyncs is the number of workers used for the controller to work on
+	// events.
+	ConcurrentSyncs *int
+}
+
+// SeeedBindingControllerConfiguration defines the configuration of the
+// SeedBinding controller.
+type SeedBindingControllerConfiguration struct {
 	// ConcurrentSyncs is the number of workers used for the controller to work on
 	// events.
 	ConcurrentSyncs *int

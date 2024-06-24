@@ -69,6 +69,9 @@ func (g *gardenerControllerManager) configMapControllerManagerConfig() (*corev1.
 			CredentialsBinding: &controllermanagerv1alpha1.CredentialsBindingControllerConfiguration{
 				ConcurrentSyncs: ptr.To(20),
 			},
+			SeedBinding: &controllermanagerv1alpha1.SeedBindingControllerConfiguration{
+				ConcurrentSyncs: ptr.To(20),
+			},
 			Seed: &controllermanagerv1alpha1.SeedControllerConfiguration{
 				ConcurrentSyncs:    ptr.To(20),
 				ShootMonitorPeriod: &metav1.Duration{Duration: 300 * time.Second},

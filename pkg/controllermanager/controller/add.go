@@ -25,6 +25,7 @@ import (
 	"github.com/gardener/gardener/pkg/controllermanager/controller/quota"
 	"github.com/gardener/gardener/pkg/controllermanager/controller/secretbinding"
 	"github.com/gardener/gardener/pkg/controllermanager/controller/seed"
+	"github.com/gardener/gardener/pkg/controllermanager/controller/seedbinding"
 	"github.com/gardener/gardener/pkg/controllermanager/controller/shoot"
 )
 
@@ -102,6 +103,12 @@ func AddToManager(ctx context.Context, mgr manager.Manager, cfg *config.Controll
 
 	if err := (&secretbinding.Reconciler{
 		Config: *cfg.Controllers.SecretBinding,
+	}).AddToManager(mgr); err != nil {
+		return fmt.Errorf("failed adding SecretBinding controller: %w", err)
+	}
+
+	if err := (&seedbinding.Reconciler{
+		Config: *cfg.Controllers.SeedBinding,
 	}).AddToManager(mgr); err != nil {
 		return fmt.Errorf("failed adding SecretBinding controller: %w", err)
 	}
