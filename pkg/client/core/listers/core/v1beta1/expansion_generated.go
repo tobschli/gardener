@@ -78,6 +78,14 @@ type SecretBindingNamespaceListerExpansion interface{}
 // SeedLister.
 type SeedListerExpansion interface{}
 
+// SeedBindingListerExpansion allows custom methods to be added to
+// SeedBindingLister.
+type SeedBindingListerExpansion interface{}
+
+// SeedBindingNamespaceListerExpansion allows custom methods to be added to
+// SeedBindingNamespaceLister.
+type SeedBindingNamespaceListerExpansion interface{}
+
 // ShootListerExpansion allows custom methods to be added to
 // ShootLister.
 type ShootListerExpansion interface{}

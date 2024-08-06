@@ -38,6 +38,8 @@ type Interface interface {
 	SecretBindings() SecretBindingInformer
 	// Seeds returns a SeedInformer.
 	Seeds() SeedInformer
+	// SeedBindings returns a SeedBindingInformer.
+	SeedBindings() SeedBindingInformer
 	// Shoots returns a ShootInformer.
 	Shoots() ShootInformer
 	// ShootStates returns a ShootStateInformer.
@@ -118,6 +120,11 @@ func (v *version) SecretBindings() SecretBindingInformer {
 // Seeds returns a SeedInformer.
 func (v *version) Seeds() SeedInformer {
 	return &seedInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+}
+
+// SeedBindings returns a SeedBindingInformer.
+func (v *version) SeedBindings() SeedBindingInformer {
+	return &seedBindingInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // Shoots returns a ShootInformer.

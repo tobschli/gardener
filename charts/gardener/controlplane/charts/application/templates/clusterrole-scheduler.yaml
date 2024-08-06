@@ -43,6 +43,7 @@ rules:
   - seeds
   - cloudprofiles
   - namespacedcloudprofiles
+  - seedbindings
   verbs:
   - get
   - list

@@ -29,6 +29,7 @@ type CoreV1beta1Interface interface {
 	QuotasGetter
 	SecretBindingsGetter
 	SeedsGetter
+	SeedBindingsGetter
 	ShootsGetter
 	ShootStatesGetter
 }
@@ -88,6 +89,10 @@ func (c *CoreV1beta1Client) SecretBindings(namespace string) SecretBindingInterf
 
 func (c *CoreV1beta1Client) Seeds() SeedInterface {
 	return newSeeds(c)
+}
+
+func (c *CoreV1beta1Client) SeedBindings(namespace string) SeedBindingInterface {
+	return newSeedBindings(c, namespace)
 }
 
 func (c *CoreV1beta1Client) Shoots(namespace string) ShootInterface {

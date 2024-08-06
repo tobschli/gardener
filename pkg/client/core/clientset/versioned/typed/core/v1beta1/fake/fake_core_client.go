@@ -68,6 +68,10 @@ func (c *FakeCoreV1beta1) Seeds() v1beta1.SeedInterface {
 	return &FakeSeeds{c}
 }
 
+func (c *FakeCoreV1beta1) SeedBindings(namespace string) v1beta1.SeedBindingInterface {
+	return &FakeSeedBindings{c, namespace}
+}
+
 func (c *FakeCoreV1beta1) Shoots(namespace string) v1beta1.ShootInterface {
 	return &FakeShoots{c, namespace}
 }

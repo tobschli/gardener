@@ -2364,6 +2364,29 @@ message SeedBackup {
   optional k8s.io.api.core.v1.SecretReference secretRef = 4;
 }
 
+// SeedBinding represents a binding to a seed.
+message SeedBinding {
+  // Standard object metadata.
+  // +optional
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
+
+  // SeedSelector is a selector for
+  // one or more seeds that the scheduling should be restricted to.
+  // If it is used, it is not possible to use the SeedRef.
+  // +optional
+  optional SeedSelector seedSelector = 4;
+}
+
+// SecretBindingList is a collection of SecretBindings.
+message SeedBindingList {
+  // Standard list object metadata.
+  // +optional
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
+
+  // Items is the list of SecretBindings.
+  repeated SeedBinding items = 2;
+}
+
 // SeedDNS contains DNS-relevant information about this seed cluster.
 message SeedDNS {
   // Provider configures a DNSProvider
