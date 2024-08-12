@@ -28,6 +28,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
+	"errors"
+
 	cmdutils "github.com/gardener/gardener/cmd/utils"
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	"github.com/gardener/gardener/pkg/client/kubernetes"
@@ -37,6 +39,12 @@ import (
 	"github.com/gardener/gardener/pkg/scheduler/apis/config"
 	"github.com/gardener/gardener/pkg/scheduler/controller"
 	"github.com/gardener/gardener/pkg/utils"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
+	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/sdk/resource"
+	"go.opentelemetry.io/otel/sdk/trace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 )
 
 // Name is a const for the name of this component.
@@ -64,6 +72,79 @@ func NewCommand() *cobra.Command {
 	opts.addFlags(flags)
 
 	return cmd
+}
+
+// setupOTelSDK bootstraps the OpenTelemetry pipeline.
+// If it does not return an error, make sure to call shutdown for proper cleanup.
+func setupOTelSDK(ctx context.Context) (shutdown func(context.Context) error, err error) {
+	var shutdownFuncs []func(context.Context) error
+
+	// shutdown calls cleanup functions registered via shutdownFuncs.
+	// The errors from the calls are joined.
+	// Each registered cleanup will be invoked once.
+	shutdown = func(ctx context.Context) error {
+		var err error
+		for _, fn := range shutdownFuncs {
+			err = errors.Join(err, fn(ctx))
+		}
+		shutdownFuncs = nil
+		return err
+	}
+
+	// handleErr calls shutdown for cleanup and makes sure that all errors are returned.
+	handleErr := func(inErr error) {
+		err = errors.Join(inErr, shutdown(ctx))
+	}
+
+	// Set up propagator.
+	prop := newPropagator()
+	otel.SetTextMapPropagator(prop)
+
+	// Set up trace provider.
+	tracerProvider, err := newTraceProvider()
+	if err != nil {
+		handleErr(err)
+		return
+	}
+	shutdownFuncs = append(shutdownFuncs, tracerProvider.Shutdown)
+	otel.SetTracerProvider(tracerProvider)
+
+	return
+}
+
+func newPropagator() propagation.TextMapPropagator {
+	return propagation.NewCompositeTextMapPropagator(
+		propagation.TraceContext{},
+		propagation.Baggage{},
+	)
+}
+
+func newTraceProvider() (*trace.TracerProvider, error) {
+	traceExporter, err := otlptracehttp.New(context.TODO(),
+		otlptracehttp.WithEndpoint("simplest-collector.observability.svc.cluster.local:4318"),
+		otlptracehttp.WithInsecure(),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	r, err := resource.Merge(
+		resource.Default(),
+		resource.NewWithAttributes(
+			semconv.SchemaURL,
+			semconv.ServiceName("gardener-scheduler"),
+		),
+	)
+
+	if err != nil {
+		panic(err)
+	}
+
+	traceProvider := trace.NewTracerProvider(
+		trace.WithBatcher(traceExporter),
+		trace.WithResource(r),
+	)
+	return traceProvider, nil
 }
 
 func run(ctx context.Context, log logr.Logger, cfg *config.SchedulerConfiguration) error {
@@ -121,6 +202,15 @@ func run(ctx context.Context, log logr.Logger, cfg *config.SchedulerConfiguratio
 	if err != nil {
 		return err
 	}
+
+	otelShutdown, err := setupOTelSDK(ctx)
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		err = errors.Join(err, otelShutdown(context.Background()))
+	}()
 
 	log.Info("Adding health check endpoints to manager")
 	if err := mgr.AddReadyzCheck("informer-sync", gardenerhealthz.NewCacheSyncHealthz(mgr.GetCache())); err != nil {

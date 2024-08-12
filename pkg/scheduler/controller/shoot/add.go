@@ -5,6 +5,7 @@
 package shoot
 
 import (
+	"go.opentelemetry.io/otel"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -30,6 +31,9 @@ func (r *Reconciler) AddToManager(mgr manager.Manager) error {
 	}
 	if r.GardenNamespace == "" {
 		r.GardenNamespace = v1beta1constants.GardenNamespace
+	}
+	if r.Tracer == nil {
+		r.Tracer = otel.GetTracerProvider().Tracer("gardener-scheduler")
 	}
 
 	return builder.

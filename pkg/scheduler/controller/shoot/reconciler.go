@@ -12,6 +12,8 @@ import (
 	"strings"
 
 	"github.com/go-logr/logr"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -38,11 +40,14 @@ type Reconciler struct {
 	Config          *config.ShootSchedulerConfiguration
 	GardenNamespace string
 	Recorder        record.EventRecorder
+	Tracer          trace.Tracer
 }
 
 // Reconcile schedules shoots to seeds.
 func (r *Reconciler) Reconcile(ctx context.Context, request reconcile.Request) (reconcile.Result, error) {
 	log := logf.FromContext(ctx)
+	ctx, span := r.Tracer.Start(ctx, "scheduling shoot")
+	defer span.End()
 
 	ctx, cancel := controllerutils.GetMainReconciliationContext(ctx, controllerutils.DefaultReconciliationTimeout)
 	defer cancel()
@@ -55,6 +60,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, request reconcile.Request) (
 		}
 		return reconcile.Result{}, fmt.Errorf("error retrieving object from store: %w", err)
 	}
+	span.SetAttributes(attribute.String("shootName", shoot.Name))
 
 	if shoot.Spec.SeedName != nil {
 		log.Info("Shoot already scheduled onto seed, nothing left to do", "seed", *shoot.Spec.SeedName)
@@ -121,6 +127,8 @@ func (r *Reconciler) determineSeed(
 	*gardencorev1beta1.Seed,
 	error,
 ) {
+	ctx, span := r.Tracer.Start(ctx, "determineSeed")
+	defer span.End()
 	seedList := &gardencorev1beta1.SeedList{}
 	if err := r.Client.List(ctx, seedList); err != nil {
 		return nil, err
@@ -151,7 +159,7 @@ func (r *Reconciler) determineSeed(
 	if err != nil {
 		return nil, err
 	}
-	filteredSeeds, err = filterBindedSeeds(filteredSeeds, seedBindings.Items)
+	filteredSeeds, err = r.filterBindedSeeds(ctx, filteredSeeds, seedBindings.Items)
 	if err != nil {
 		return nil, err
 	}
@@ -182,7 +190,9 @@ func (r *Reconciler) determineSeed(
 	return getSeedWithLeastShootsDeployed(filteredSeeds, shootList)
 }
 
-func filterBindedSeeds(seedList []gardencorev1beta1.Seed, bindings []gardencorev1beta1.SeedBinding) ([]gardencorev1beta1.Seed, error) {
+func (r *Reconciler) filterBindedSeeds(ctx context.Context, seedList []gardencorev1beta1.Seed, bindings []gardencorev1beta1.SeedBinding) ([]gardencorev1beta1.Seed, error) {
+	_, span := r.Tracer.Start(ctx, "filterBindedSeeds")
+	defer span.End()
 	if len(bindings) == 0 {
 		return seedList, nil
 	}
