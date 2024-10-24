@@ -105,13 +105,6 @@ var _ = Describe("Shoot Tests", Label("Shoot", "default"), func() {
 				v = append(v, &rotation.SSHKeypairVerifier{ShootCreationFramework: f})
 			}
 
-			DeferCleanup(func() {
-				ctx, cancel := context.WithTimeout(parentCtx, 2*time.Minute)
-				defer cancel()
-
-				v.Cleanup(ctx)
-			})
-
 			v.Before(ctx)
 
 			By("Start credentials rotation")
@@ -161,6 +154,76 @@ var _ = Describe("Shoot Tests", Label("Shoot", "default"), func() {
 			}).Should(Succeed())
 
 			v.AfterCompleted(ctx)
+
+			func() {
+				ctx, cancel := context.WithTimeout(parentCtx, 2*time.Minute)
+				defer cancel()
+
+				v.Cleanup(ctx)
+			}()
+			// --- Just the rotation of SSH keys ---
+
+			v = rotationutils.Verifiers{}
+			if !v1beta1helper.IsWorkerless(f.Shoot) {
+				v = append(v, &rotation.SSHKeypairVerifier{ShootCreationFramework: f})
+			}
+
+			v.Before(ctx)
+
+			By("Start credentials rotation")
+			ctx, cancel = context.WithTimeout(parentCtx, 20*time.Minute)
+			defer cancel()
+
+			patch = client.MergeFrom(f.Shoot.DeepCopy())
+			metav1.SetMetaDataAnnotation(&f.Shoot.ObjectMeta, v1beta1constants.GardenerOperation, v1beta1constants.OperationRotateCredentialsStart)
+			Eventually(func() error {
+				return f.GardenClient.Client().Patch(ctx, f.Shoot, patch)
+			}).Should(Succeed())
+
+			Eventually(func(g Gomega) {
+				g.Expect(f.GardenClient.Client().Get(ctx, client.ObjectKeyFromObject(f.Shoot), f.Shoot)).To(Succeed())
+				g.Expect(f.Shoot.Annotations).NotTo(HaveKey(v1beta1constants.GardenerOperation))
+				v.ExpectPreparingStatus(g)
+			}).Should(Succeed())
+
+			Expect(f.WaitForShootToBeReconciled(ctx, f.Shoot)).To(Succeed())
+
+			Eventually(func() error {
+				return f.GardenClient.Client().Get(ctx, client.ObjectKeyFromObject(f.Shoot), f.Shoot)
+			}).Should(Succeed())
+
+			v.AfterPrepared(ctx)
+
+			By("Complete credentials rotation")
+			ctx, cancel = context.WithTimeout(parentCtx, 20*time.Minute)
+			defer cancel()
+
+			patch = client.MergeFrom(f.Shoot.DeepCopy())
+			metav1.SetMetaDataAnnotation(&f.Shoot.ObjectMeta, v1beta1constants.GardenerOperation, v1beta1constants.OperationRotateCredentialsComplete)
+			Eventually(func() error {
+				return f.GardenClient.Client().Patch(ctx, f.Shoot, patch)
+			}).Should(Succeed())
+
+			Eventually(func(g Gomega) {
+				g.Expect(f.GardenClient.Client().Get(ctx, client.ObjectKeyFromObject(f.Shoot), f.Shoot)).To(Succeed())
+				g.Expect(f.Shoot.Annotations).NotTo(HaveKey(v1beta1constants.GardenerOperation))
+				v.ExpectCompletingStatus(g)
+			}).Should(Succeed())
+
+			Expect(f.WaitForShootToBeReconciled(ctx, f.Shoot)).To(Succeed())
+
+			Eventually(func(g Gomega) {
+				g.Expect(f.GardenClient.Client().Get(ctx, client.ObjectKeyFromObject(f.Shoot), f.Shoot)).To(Succeed())
+			}).Should(Succeed())
+
+			v.AfterCompleted(ctx)
+
+			func() {
+				ctx, cancel := context.WithTimeout(parentCtx, 2*time.Minute)
+				defer cancel()
+
+				v.Cleanup(ctx)
+			}()
 
 			By("Delete Shoot")
 			ctx, cancel = context.WithTimeout(parentCtx, 20*time.Minute)
