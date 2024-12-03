@@ -155,6 +155,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/gardener/gardener/pkg/apis/core/v1beta1.ProjectStatus":                              schema_pkg_apis_core_v1beta1_ProjectStatus(ref),
 		"github.com/gardener/gardener/pkg/apis/core/v1beta1.ProjectTolerations":                         schema_pkg_apis_core_v1beta1_ProjectTolerations(ref),
 		"github.com/gardener/gardener/pkg/apis/core/v1beta1.Provider":                                   schema_pkg_apis_core_v1beta1_Provider(ref),
+		"github.com/gardener/gardener/pkg/apis/core/v1beta1.ProvisioningRequests":                       schema_pkg_apis_core_v1beta1_ProvisioningRequests(ref),
 		"github.com/gardener/gardener/pkg/apis/core/v1beta1.Quota":                                      schema_pkg_apis_core_v1beta1_Quota(ref),
 		"github.com/gardener/gardener/pkg/apis/core/v1beta1.QuotaList":                                  schema_pkg_apis_core_v1beta1_QuotaList(ref),
 		"github.com/gardener/gardener/pkg/apis/core/v1beta1.QuotaSpec":                                  schema_pkg_apis_core_v1beta1_QuotaSpec(ref),
@@ -2327,11 +2328,17 @@ func schema_pkg_apis_core_v1beta1_ClusterAutoscaler(ref common.ReferenceCallback
 							},
 						},
 					},
+					"provisioningRequests": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ProvisioningRequests contains configuration for the provisioning request feature of cluster autoscaler.",
+							Ref:         ref("github.com/gardener/gardener/pkg/apis/core/v1beta1.ProvisioningRequests"),
+						},
+					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.Duration"},
+			"github.com/gardener/gardener/pkg/apis/core/v1beta1.ProvisioningRequests", "k8s.io/apimachinery/pkg/apis/meta/v1.Duration"},
 	}
 }
 
@@ -6788,6 +6795,28 @@ func schema_pkg_apis_core_v1beta1_Provider(ref common.ReferenceCallback) common.
 		},
 		Dependencies: []string{
 			"github.com/gardener/gardener/pkg/apis/core/v1beta1.Worker", "github.com/gardener/gardener/pkg/apis/core/v1beta1.WorkersSettings", "k8s.io/apimachinery/pkg/runtime.RawExtension"},
+	}
+}
+
+func schema_pkg_apis_core_v1beta1_ProvisioningRequests(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ProvisioningRequests contains configuration for the provisioning request feature of cluster autoscaler.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"enabled": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Enabled specifies whether the ProvisioningRequests API is enabled. enabled is supported for K8s 1.30 and above.",
+							Default:     false,
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"enabled"},
+			},
+		},
 	}
 }
 

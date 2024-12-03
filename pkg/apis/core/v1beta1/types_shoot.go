@@ -650,6 +650,16 @@ type ClusterAutoscaler struct {
 	// Cluster Autoscaler internally treats nodes tainted with status taints as ready, but filtered out during scale up logic.
 	// +optional
 	StatusTaints []string `json:"statusTaints,omitempty" protobuf:"bytes,16,opt,name=statusTaints"`
+	// ProvisioningRequests contains configuration for the provisioning request feature of cluster autoscaler.
+	// +optional
+	ProvisioningRequests *ProvisioningRequests `json:"provisioningRequests,omitempty" protobuf:"bytes,17,opt,name=provisioningRequests"`
+}
+
+// ProvisioningRequests contains configuration for the provisioning request feature of cluster autoscaler.
+type ProvisioningRequests struct {
+	// Enabled specifies whether the ProvisioningRequests API is enabled.
+	// enabled is supported for K8s 1.30 and above.
+	Enabled bool `json:"enabled" protobuf:"varint,1,opt,name=enabled"`
 }
 
 // ExpanderMode is type used for Expander values

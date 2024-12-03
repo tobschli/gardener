@@ -1166,6 +1166,12 @@ func ValidateClusterAutoscaler(autoScaler core.ClusterAutoscaler, version string
 	if maxEmptyBulkDelete := autoScaler.MaxEmptyBulkDelete; maxEmptyBulkDelete != nil && *maxEmptyBulkDelete < 0 {
 		allErrs = append(allErrs, field.Invalid(fldPath.Child("maxEmptyBulkDelete"), *maxEmptyBulkDelete, "can not be negative"))
 	}
+	if provisioningRequests := autoScaler.ProvisioningRequests; provisioningRequests != nil {
+		k8sVersion1_30Above, _ := versionutils.CheckVersionMeetsConstraint(version, ">= 1.30")
+		if provisioningRequests.Enabled && !k8sVersion1_30Above {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("provisioningRequests"), *provisioningRequests, "is available for Kubernetes versions >= v1.30"))
+		}
+	}
 
 	return allErrs
 }

@@ -487,6 +487,10 @@ message ClusterAutoscaler {
   // Cluster Autoscaler internally treats nodes tainted with status taints as ready, but filtered out during scale up logic.
   // +optional
   repeated string statusTaints = 16;
+
+  // ProvisioningRequests contains configuration for the provisioning request feature of cluster autoscaler.
+  // +optional
+  optional ProvisioningRequests provisioningRequests = 17;
 }
 
 // ClusterAutoscalerOptions contains the cluster autoscaler configurations for a worker pool.
@@ -2276,6 +2280,13 @@ message Provider {
   // WorkersSettings contains settings for all workers.
   // +optional
   optional WorkersSettings workersSettings = 5;
+}
+
+// ProvisioningRequests contains configuration for the provisioning request feature of cluster autoscaler.
+message ProvisioningRequests {
+  // Enabled specifies whether the ProvisioningRequests API is enabled.
+  // enabled is supported for K8s 1.30 and above.
+  optional bool enabled = 1;
 }
 
 // Quota represents a quota on resources consumed by shoot clusters either per project or per provider secret.

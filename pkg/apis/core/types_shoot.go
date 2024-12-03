@@ -514,6 +514,15 @@ type ClusterAutoscaler struct {
 	IgnoreDaemonsetsUtilization *bool
 	// Verbosity allows CA to modify its log level.
 	Verbosity *int32
+	// ProvisioningRequests contains configuration for the provisioning request feature of cluster autoscaler.
+	ProvisioningRequests *ProvisioningRequests
+}
+
+// ProvisioningRequests contains configuration for the provisioning request feature of cluster autoscaler.
+type ProvisioningRequests struct {
+	// Enabled specifies whether the ProvisioningRequests API is enabled.
+	// enabled is supported for K8s 1.30 and above.
+	Enabled bool
 }
 
 // ExpanderMode is type used for Expander values

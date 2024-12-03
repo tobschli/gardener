@@ -75,6 +75,9 @@ get_group_package () {
   "dashboard.gardener.cloud")
     echo "github.com/gardener/terminal-controller-manager/api/v1alpha1"
     ;;
+  "autoscaling.x-k8s.io")
+    echo "k8s.io/autoscaler/cluster-autoscaler/apis/provisioningrequest/autoscaling.x-k8s.io/v1beta1"
+    ;;
   *)
     >&2 echo "unknown group $1"
     return 1
@@ -93,6 +96,7 @@ generate_all_groups () {
   generate_group monitoring.coreos.com_v1alpha1
   generate_group machine.sapcloud.io
   generate_group dashboard.gardener.cloud
+  generate_group autoscaling.x-k8s.io
 }
 
 generate_group () {

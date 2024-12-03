@@ -43,9 +43,10 @@ import (
 )
 
 const (
-	serviceName               = "cluster-autoscaler"
-	managedResourceTargetName = "shoot-core-cluster-autoscaler"
-	containerName             = v1beta1constants.DeploymentNameClusterAutoscaler
+	serviceName                  = "cluster-autoscaler"
+	managedResourceTargetName    = "shoot-core-cluster-autoscaler"
+	crdManagedResourceTargetName = "shoot-core-cluster-autoscaler-crds"
+	containerName                = v1beta1constants.DeploymentNameClusterAutoscaler
 
 	portNameMetrics       = "metrics"
 	portMetrics     int32 = 8085
@@ -341,13 +342,29 @@ func (c *clusterAutoscaler) Deploy(ctx context.Context) error {
 	}); err != nil {
 		return err
 	}
-
 	data, err := c.computeShootResourcesData(shootAccessSecret.ServiceAccountName)
 	if err != nil {
 		return err
 	}
-
-	return managedresources.CreateForShoot(ctx, c.client, c.namespace, managedResourceTargetName, managedresources.LabelValueGardener, false, data)
+	if err := managedresources.CreateForShoot(ctx, c.client, c.namespace, managedResourceTargetName, managedresources.LabelValueGardener, false, data); err != nil {
+		return err
+	}
+	// TODO(tobschli): This is incredibly unattractive.
+	if c.config.ProvisioningRequests != nil && c.config.ProvisioningRequests.Enabled {
+		registry := managedresources.NewRegistry(kubernetes.ShootScheme, kubernetes.ShootCodec, kubernetes.ShootSerializer)
+		crdDeployer := NewCRD(registry)
+		if err := crdDeployer.Deploy(ctx); err != nil {
+			return err
+		}
+		data, err := registry.SerializedObjects()
+		if err != nil {
+			return err
+		}
+		if err := managedresources.CreateForShoot(ctx, c.client, c.namespace, crdManagedResourceTargetName, managedresources.LabelValueGardener, false, data); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func getLabels() map[string]string {
@@ -465,6 +482,13 @@ func (c *clusterAutoscaler) computeCommand() []string {
 		fmt.Sprintf("--new-pod-scale-up-delay=%s", c.config.NewPodScaleUpDelay.Duration),
 		fmt.Sprintf("--max-nodes-total=%d", c.maxNodesTotal),
 	)
+
+	if c.config.ProvisioningRequests != nil && c.config.ProvisioningRequests.Enabled {
+		command = append(command,
+			"--enable-provisioning-requests=true",
+			"--kube-api-content-type=true",
+		)
+	}
 
 	for _, taint := range c.config.StartupTaints {
 		command = append(command, "--startup-taint="+taint)
@@ -618,10 +642,20 @@ func (c *clusterAutoscaler) computeShootResourcesData(serviceAccountName string)
 		}
 	)
 
-	return registry.AddAllAndSerialize(
-		clusterRole,
-		clusterRoleBinding,
-		role,
-		rolebinding,
-	)
+	if c.config.ProvisioningRequests != nil && c.config.ProvisioningRequests.Enabled {
+		provisioningRequestsPolicyRules := []rbacv1.PolicyRule{
+			{
+				APIGroups: []string{"autoscaling.x-k8s.io"},
+				Resources: []string{"provisioningrequests", "provisioningrequests/status"},
+				Verbs:     []string{"watch", "list", "get", "create", "update", "patch", "delete"},
+			},
+			{
+				APIGroups: []string{""},
+				Resources: []string{"podtemplates"},
+				Verbs:     []string{"watch", "list", "get"},
+			},
+		}
+		clusterRole.Rules = append(clusterRole.Rules, provisioningRequestsPolicyRules...)
+	}
+	return registry.AddAllAndSerialize(clusterRole, clusterRoleBinding, role, rolebinding)
 }

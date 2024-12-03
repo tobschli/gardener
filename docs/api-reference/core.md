@@ -3756,6 +3756,20 @@ Cluster Autoscaler treats nodes tainted with startup taints as unready, but take
 Cluster Autoscaler internally treats nodes tainted with status taints as ready, but filtered out during scale up logic.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>provisioningRequests</code></br>
+<em>
+<a href="#core.gardener.cloud/v1beta1.ProvisioningRequests">
+ProvisioningRequests
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ProvisioningRequests contains configuration for the provisioning request feature of cluster autoscaler.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="core.gardener.cloud/v1beta1.ClusterAutoscalerOptions">ClusterAutoscalerOptions
@@ -9527,6 +9541,37 @@ WorkersSettings
 <td>
 <em>(Optional)</em>
 <p>WorkersSettings contains settings for all workers.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="core.gardener.cloud/v1beta1.ProvisioningRequests">ProvisioningRequests
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#core.gardener.cloud/v1beta1.ClusterAutoscaler">ClusterAutoscaler</a>)
+</p>
+<p>
+<p>ProvisioningRequests contains configuration for the provisioning request feature of cluster autoscaler.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>enabled</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+<p>Enabled specifies whether the ProvisioningRequests API is enabled.
+enabled is supported for K8s 1.30 and above.</p>
 </td>
 </tr>
 </tbody>
