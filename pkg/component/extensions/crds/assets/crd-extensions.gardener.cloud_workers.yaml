@@ -525,7 +525,6 @@ spec:
                   - maximum
                   - minimum
                   - name
-                  - priority
                   type: object
                 type: array
               machineDeploymentsLastUpdateTime:

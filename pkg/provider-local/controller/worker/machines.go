@@ -13,7 +13,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/gardener/gardener/extensions/pkg/controller/worker"
@@ -153,7 +152,7 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 			Minimum:                      pool.Minimum,
 			Maximum:                      pool.Maximum,
 			MaxSurge:                     pool.MaxSurge,
-			Priority:                     ptr.Deref(pool.Priority, 0),
+			Priority:                     pool.Priority,
 			MaxUnavailable:               pool.MaxUnavailable,
 			Labels:                       pool.Labels,
 			Annotations:                  pool.Annotations,
