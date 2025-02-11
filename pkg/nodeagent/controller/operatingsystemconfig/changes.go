@@ -47,11 +47,13 @@ func extractOSCFromSecret(secret *corev1.Secret) (*extensionsv1alpha1.OperatingS
 	return osc, secret.Annotations[nodeagentconfigv1alpha1.AnnotationKeyChecksumDownloadedOperatingSystemConfig], nil
 }
 
-func computeOperatingSystemConfigChanges(log logr.Logger, fs afero.Afero, newOSC *extensionsv1alpha1.OperatingSystemConfig, newOSCChecksum string) (*operatingSystemConfigChanges, error) {
+func computeOperatingSystemConfigChanges(log logr.Logger, fs afero.Afero, newOSC *extensionsv1alpha1.OperatingSystemConfig, newOSCChecksum string, lastAppliedOSC *extensionsv1alpha1.OperatingSystemConfig) (*operatingSystemConfigChanges, error) {
 	changes := &operatingSystemConfigChanges{
 		fs:                            fs,
 		OperatingSystemConfigChecksum: newOSCChecksum,
 	}
+
+	lastAppliedTracker := buildLastAppliedOSC(newOSC, lastAppliedOSC)
 
 	oldChanges, err := loadOSCChanges(fs)
 	if err != nil {
@@ -61,6 +63,9 @@ func computeOperatingSystemConfigChanges(log logr.Logger, fs afero.Afero, newOSC
 		// there is no file (yet), set to an empty file, the hashes will mismatch
 		oldChanges = &operatingSystemConfigChanges{}
 	}
+
+	oldChanges.lastAppliedOSCTracker = lastAppliedTracker
+	changes.lastAppliedOSCTracker = lastAppliedTracker
 
 	if oldChanges.OperatingSystemConfigChecksum == changes.OperatingSystemConfigChecksum {
 		log.Info("Found previously computed OperatingSystemConfig changes on disk, remaining work",

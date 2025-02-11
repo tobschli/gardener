@@ -6,6 +6,7 @@ package operatingsystemconfig
 
 import (
 	"fmt"
+	"k8s.io/apimachinery/pkg/runtime"
 	"slices"
 	"sync"
 
@@ -16,8 +17,9 @@ import (
 )
 
 type operatingSystemConfigChanges struct {
-	lock sync.Mutex
-	fs   afero.Afero
+	lock                  sync.Mutex
+	fs                    afero.Afero
+	lastAppliedOSCTracker lastAppliedOSCTracker
 
 	OperatingSystemConfigChecksum string     `json:"operatingSystemConfigChecksum"`
 	Units                         units      `json:"units"`
@@ -65,9 +67,56 @@ type containerdRegistries struct {
 	Deleted []extensionsv1alpha1.RegistryConfig `json:"deleted,omitempty"`
 }
 
+type lastAppliedOSCTracker struct {
+	newOSC      *extensionsv1alpha1.OperatingSystemConfig
+	lastApplied *extensionsv1alpha1.OperatingSystemConfig
+	nameToUnit  map[string]extensionsv1alpha1.Unit
+	pathToFile  map[string]extensionsv1alpha1.File
+}
+
+func buildLastAppliedOSC(newOSC *extensionsv1alpha1.OperatingSystemConfig, lastApplied *extensionsv1alpha1.OperatingSystemConfig) lastAppliedOSCTracker {
+	if lastApplied.Spec.Units != nil {
+		lastApplied.Spec.Units = []extensionsv1alpha1.Unit{}
+	}
+	nameToUnit := map[string]extensionsv1alpha1.Unit{}
+	pathToFile := map[string]extensionsv1alpha1.File{}
+
+	for _, unit := range newOSC.Spec.Units {
+		nameToUnit[unit.Name] = unit
+	}
+
+	for _, file := range newOSC.Spec.Files {
+		pathToFile[file.Path] = file
+	}
+
+	return lastAppliedOSCTracker{
+		newOSC:      newOSC,
+		lastApplied: lastApplied,
+		nameToUnit:  nameToUnit,
+		pathToFile:  pathToFile,
+	}
+}
+
+func (l *lastAppliedOSCTracker) addUnit(name string) {
+	l.lastApplied.Spec.Units = append(l.lastApplied.Spec.Units, l.nameToUnit[name])
+}
+
+func (l *lastAppliedOSCTracker) addFile(path string) {
+	l.lastApplied.Spec.Files = append(l.lastApplied.Spec.Files, l.pathToFile[path])
+}
+
 // persist the operatingSystemConfigChanges to disk. persist() requires the caller to ensure no concurrent actions are
 // taking place by holding the lock.
 func (o *operatingSystemConfigChanges) persist() error {
+	lastOSCRaw, err := runtime.Encode(codec, o.lastAppliedOSCTracker.lastApplied)
+	if err != nil {
+		return fmt.Errorf("unable to encode OSC: %w", err)
+	}
+
+	if err := o.fs.WriteFile(lastAppliedOperatingSystemConfigFilePath, lastOSCRaw, 0600); err != nil {
+		return fmt.Errorf("unable to write current OSC to file path %q: %w", lastAppliedOperatingSystemConfigFilePath, err)
+	}
+
 	out, err := yaml.Marshal(o)
 	if err != nil {
 		return fmt.Errorf("failed marshalling the changes into YAML: %w", err)
@@ -101,6 +150,9 @@ func (o *operatingSystemConfigChanges) completedUnitChanged(name string) error {
 	o.Units.Changed = slices.DeleteFunc(o.Units.Changed, func(c changedUnit) bool {
 		return c.Name == name
 	})
+
+	o.lastAppliedOSCTracker.addUnit(name)
+
 	return o.persist()
 }
 
@@ -167,6 +219,8 @@ func (o *operatingSystemConfigChanges) completedFileChanged(path string) error {
 	o.Files.Changed = slices.DeleteFunc(o.Files.Changed, func(f extensionsv1alpha1.File) bool {
 		return f.Path == path
 	})
+
+	o.lastAppliedOSCTracker.addFile(path)
 
 	return o.persist()
 }

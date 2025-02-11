@@ -38,6 +38,20 @@ type ensurer struct {
 	logger logr.Logger
 }
 
+func (e *ensurer) EnsureAdditionalUnits(_ context.Context, _ extensionscontextwebhook.GardenContext, new, _ *[]extensionsv1alpha1.Unit) error {
+	*new = webhook.EnsureUnitWithName(*new, extensionsv1alpha1.Unit{
+		Name:    "kaputt.service",
+		Enable:  ptr.To(true),
+		Command: ptr.To(extensionsv1alpha1.CommandStart),
+		Content: ptr.To(` [Unit
+    Description=An invalid serive file with syntax errors
+    [Service]
+    Restart=on-failure
+    ExecStart=/var/lib/i-dont-exist.sh`),
+	})
+	return nil
+}
+
 // EnsureMachineControllerManagerDeployment ensures that the machine-controller-manager deployment conforms to the provider requirements.
 func (e *ensurer) EnsureMachineControllerManagerDeployment(_ context.Context, _ extensionscontextwebhook.GardenContext, newObj, _ *appsv1.Deployment) error {
 	image, err := imagevector.ImageVector().FindImage(imagevector.ImageNameMachineControllerManagerProviderLocal)

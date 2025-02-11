@@ -63,15 +63,16 @@ func init() {
 // Reconciler decodes the OperatingSystemConfig resources from secrets and applies the systemd units and files to the
 // node.
 type Reconciler struct {
-	Client        client.Client
-	Config        nodeagentconfigv1alpha1.OperatingSystemConfigControllerConfig
-	Recorder      record.EventRecorder
-	DBus          dbus.DBus
-	FS            afero.Afero
-	Extractor     registry.Extractor
-	CancelContext context.CancelFunc
-	HostName      string
-	NodeName      string
+	Client         client.Client
+	Config         nodeagentconfigv1alpha1.OperatingSystemConfigControllerConfig
+	Recorder       record.EventRecorder
+	DBus           dbus.DBus
+	FS             afero.Afero
+	Extractor      registry.Extractor
+	CancelContext  context.CancelFunc
+	HostName       string
+	NodeName       string
+	lastAppliedOSC *extensionsv1alpha1.OperatingSystemConfig
 }
 
 // Reconcile decodes the OperatingSystemConfig resources from secrets and applies the systemd units and files to the
@@ -107,12 +108,24 @@ func (r *Reconciler) Reconcile(ctx context.Context, request reconcile.Request) (
 		return reconcile.Result{}, fmt.Errorf("failed extracting OSC from secret: %w", err)
 	}
 
+	lastAppliedOSCRaw, err := r.FS.ReadFile(lastAppliedOperatingSystemConfigFilePath)
+	if err != nil {
+		if !errors.Is(err, afero.ErrFileNotFound) {
+			return reconcile.Result{}, fmt.Errorf("error reading last applied OSC from file path %s: %w", lastAppliedOperatingSystemConfigFilePath, err)
+		}
+	}
+
+	lastAppliedOSC := &extensionsv1alpha1.OperatingSystemConfig{}
+	if err := runtime.DecodeInto(decoder, lastAppliedOSCRaw, lastAppliedOSC); err != nil {
+		return reconcile.Result{}, fmt.Errorf("unable to decode the old OSC read from file path %s: %w", lastAppliedOperatingSystemConfigFilePath, err)
+	}
+
 	log.Info("Applying containerd configuration")
 	if err := r.ReconcileContainerdConfig(ctx, log, osc); err != nil {
 		return reconcile.Result{}, fmt.Errorf("failed reconciling containerd configuration: %w", err)
 	}
 
-	oscChanges, err := computeOperatingSystemConfigChanges(log, r.FS, osc, oscChecksum)
+	oscChanges, err := computeOperatingSystemConfigChanges(log, r.FS, osc, oscChecksum, lastAppliedOSC)
 	if err != nil {
 		return reconcile.Result{}, fmt.Errorf("failed calculating the OSC changes: %w", err)
 	}
@@ -173,15 +186,15 @@ func (r *Reconciler) Reconcile(ctx context.Context, request reconcile.Request) (
 
 	log.Info("Successfully applied operating system config")
 
-	log.Info("Persisting current operating system config as 'last-applied' file to the disk", "path", lastAppliedOperatingSystemConfigFilePath)
-	oscRaw, err := runtime.Encode(codec, osc)
-	if err != nil {
-		return reconcile.Result{}, fmt.Errorf("unable to encode OSC: %w", err)
-	}
-
-	if err := r.FS.WriteFile(lastAppliedOperatingSystemConfigFilePath, oscRaw, 0600); err != nil {
-		return reconcile.Result{}, fmt.Errorf("unable to write current OSC to file path %q: %w", lastAppliedOperatingSystemConfigFilePath, err)
-	}
+	//log.Info("Persisting current operating system config as 'last-applied' file to the disk", "path", lastAppliedOperatingSystemConfigFilePath)
+	//oscRaw, err := runtime.Encode(codec, osc)
+	//if err != nil {
+	//	return reconcile.Result{}, fmt.Errorf("unable to encode OSC: %w", err)
+	//}
+	//
+	//if err := r.FS.WriteFile(lastAppliedOperatingSystemConfigFilePath, oscRaw, 0600); err != nil {
+	//	return reconcile.Result{}, fmt.Errorf("unable to write current OSC to file path %q: %w", lastAppliedOperatingSystemConfigFilePath, err)
+	//}
 
 	if oscChanges.MustRestartNodeAgent {
 		log.Info("Must restart myself (gardener-node-agent unit), canceling the context to initiate graceful shutdown")
