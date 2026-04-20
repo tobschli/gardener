@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"maps"
+	"strings"
 	"time"
 
 	machinev1alpha1 "github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
@@ -16,6 +17,7 @@ import (
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/machinecodes/codes"
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/machinecodes/status"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog/v2"
@@ -109,6 +111,16 @@ func (d *localDriver) applyService(ctx context.Context, providerClient client.Cl
 				AppProtocol: ptr.To("ssh"),
 			},
 		},
+	}
+	if strings.Contains(req.Machine.Name, "control-plane") {
+		service.Spec.Type = corev1.ServiceTypeNodePort
+		service.Spec.ClusterIP = ""
+		service.Spec.Ports = append(service.Spec.Ports, corev1.ServicePort{
+			Name:       "self-hosted-shoot-apiserver",
+			Port:       4431,
+			TargetPort: intstr.FromInt32(443),
+			NodePort:   30003,
+		})
 	}
 
 	if err := controllerutil.SetControllerReference(owner, service, providerClient.Scheme()); err != nil {

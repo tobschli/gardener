@@ -191,6 +191,9 @@ func emptyService(namespace string) *corev1.Service {
 			Labels: map[string]string{
 				"app": "machine",
 			},
+			Annotations: map[string]string{
+				"networking.resources.gardener.cloud/from-world-to-ports": "[{\"port\":443,\"protocol\":\"TCP\"}]",
+			},
 		},
 	}
 }
