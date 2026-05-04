@@ -9,6 +9,7 @@ import (
 	"reflect"
 
 	"github.com/go-logr/logr"
+	appsv1 "k8s.io/api/apps/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -69,6 +70,10 @@ func (r *Reconciler) AddToManager(ctx context.Context, mgr manager.Manager) erro
 			&gardencorev1beta1.Seed{},
 			handler.EnqueueRequestsFromMapFunc(r.MapSeedToManagedSeedSet(mgr.GetLogger().WithValues("controller", ControllerName))),
 			builder.WithPredicates(r.SeedPredicate(ctx)),
+		).
+		Watches(
+			&appsv1.ControllerRevision{},
+			handler.EnqueueRequestForOwner(mgr.GetScheme(), mgr.GetRESTMapper(), &seedmanagementv1alpha1.ManagedSeedSet{}, handler.OnlyControllerOwner()),
 		).
 		Complete(r)
 }

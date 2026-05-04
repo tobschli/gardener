@@ -36,6 +36,15 @@ const (
 	maxShootRetries int32 = 3
 )
 
+// testRevisionName is the ControllerRevision name that getMSSRevisions produces for a
+// ManagedSeedSet named "test" with zero-valued Spec.Template / Spec.ShootTemplate.
+// Computed at package-init time so it is available in DescribeTable Entry arguments,
+// which are evaluated during spec registration before any BeforeEach runs.
+var testRevisionName = GetMSSRevisionName(&seedmanagementv1alpha1.ManagedSeedSet{
+	ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
+	Spec:       seedmanagementv1alpha1.ManagedSeedSetSpec{Replicas: ptr.To[int32](1)},
+})
+
 var _ = Describe("Actuator", func() {
 	var (
 		ctrl *gomock.Controller
@@ -139,6 +148,8 @@ var _ = Describe("Actuator", func() {
 				ReadyReplicas:      readyReplicas,
 				NextReplicaNumber:  nextReplicaNumber,
 				PendingReplica:     pendingReplica,
+				CurrentRevision:    testRevisionName,
+				UpdateRevision:     testRevisionName,
 			}
 		}
 

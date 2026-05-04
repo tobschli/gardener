@@ -70,6 +70,17 @@ func (a *actuator) Reconcile(ctx context.Context, log logr.Logger, managedSeedSe
 		}
 	}()
 
+	// Manage ControllerRevisions:
+	// 1. Calculate spec template hash (template + shootTemplate).
+	// 2. Detect name collisions and adjust CollisionCount.
+	// 3. Update CurrentRevision and UpdateRevision in status.
+	// 4. Create a new ControllerRevision when the spec changes (triggers rolling update).
+	// 5. Adopt / bump an existing ControllerRevision when its data matches but it is stale
+	//    (rollback case: makes that revision the update target again).
+	if err := getMSSRevisions(ctx, a.gardenClient, managedSeedSet, status); err != nil {
+		return status, false, fmt.Errorf("failed to manage ControllerRevisions: %w", err)
+	}
+
 	// Get replicas
 	replicas, err := a.replicaGetter.GetReplicas(ctx, managedSeedSet)
 	if err != nil {
