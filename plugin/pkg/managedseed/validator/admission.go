@@ -396,6 +396,9 @@ func (v *ManagedSeed) getSeedDNSProvider(shoot *gardencorev1beta1.Shoot) (*garde
 
 func (v *ManagedSeed) getSeedDNSProviderForCustomDomain(shoot *gardencorev1beta1.Shoot) (*gardencore.SeedDNSProvider, error) {
 	// Find a primary DNS provider in the list of shoot DNS providers
+	if shoot.Spec.DNS == nil {
+		return nil, nil
+	}
 	primaryProvider := v1beta1helper.FindPrimaryDNSProvider(shoot.Spec.DNS.Providers)
 	if primaryProvider == nil {
 		return nil, nil
