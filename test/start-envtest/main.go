@@ -105,7 +105,7 @@ func run(ctx context.Context, log logr.Logger, opts *options) error {
 		testEnv = &gardenerenvtest.GardenerTestEnvironment{
 			Environment: kubeEnvironment,
 			GardenerAPIServer: &gardenerenvtest.GardenerAPIServer{
-				Args: []string{"--disable-admission-plugins="},
+				Args: []string{"--disable-admission-plugins=ExtensionValidator"},
 			},
 		}
 	}
