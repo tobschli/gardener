@@ -13,6 +13,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/clock"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -40,6 +41,12 @@ func (r *Reconciler) AddToManager(ctx context.Context, mgr manager.Manager) erro
 
 	if r.Client == nil {
 		r.Client = mgr.GetClient()
+	}
+	if r.Clock == nil {
+		r.Clock = clock.RealClock{}
+	}
+	if r.Recorder == nil {
+		r.Recorder = mgr.GetEventRecorder(ControllerName + "-controller")
 	}
 
 	if r.Actuator == nil {

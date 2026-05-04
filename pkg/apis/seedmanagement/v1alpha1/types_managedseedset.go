@@ -171,4 +171,7 @@ type PendingReplica struct {
 	Retries *int32 `json:"retries,omitempty" protobuf:"varint,4,opt,name=retries"`
 }
 
-// TODO Condition constants
+const (
+	// ManagedSeedSetReconciled is a condition type for indicating whether the ManagedSeedSet has been reconciled.
+	ManagedSeedSetReconciled gardencorev1beta1.ConditionType = "ManagedSeedSetReconciled"
+)

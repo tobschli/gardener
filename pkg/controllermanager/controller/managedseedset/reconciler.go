@@ -10,12 +10,16 @@ import (
 
 	"github.com/go-logr/logr"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/tools/events"
+	"k8s.io/utils/clock"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	controllermanagerconfigv1alpha1 "github.com/gardener/gardener/pkg/apis/config/controllermanager/v1alpha1"
+	v1beta1helper "github.com/gardener/gardener/pkg/api/core/v1beta1/helper"
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	seedmanagementv1alpha1 "github.com/gardener/gardener/pkg/apis/seedmanagement/v1alpha1"
 	"github.com/gardener/gardener/pkg/controllerutils"
@@ -25,6 +29,8 @@ import (
 type Reconciler struct {
 	Client   client.Client
 	Config   controllermanagerconfigv1alpha1.ManagedSeedSetControllerConfiguration
+	Clock    clock.Clock
+	Recorder events.EventRecorder
 	Actuator Actuator
 }
 
@@ -58,6 +64,16 @@ func (r *Reconciler) reconcile(ctx context.Context, log logr.Logger, managedSeed
 
 	var status *seedmanagementv1alpha1.ManagedSeedSetStatus
 	defer func() {
+		if err != nil {
+			r.Recorder.Eventf(managedSeedSet, nil, corev1.EventTypeWarning, gardencorev1beta1.EventReconcileError, "Reconciling", "%s", err.Error())
+		}
+		if status != nil {
+			if err != nil {
+				status.Conditions = updateManagedSeedSetCondition(r.Clock, status.Conditions, gardencorev1beta1.ConditionFalse, gardencorev1beta1.EventReconcileError, err.Error())
+			} else {
+				status.Conditions = updateManagedSeedSetCondition(r.Clock, status.Conditions, gardencorev1beta1.ConditionTrue, gardencorev1beta1.EventReconciled, "ManagedSeedSet has been reconciled successfully.")
+			}
+		}
 		// Update status, on failure return the update error unless there is another error
 		if updateErr := r.updateStatus(ctx, managedSeedSet, status); updateErr != nil && err == nil {
 			err = fmt.Errorf("could not update status: %w", updateErr)
@@ -90,6 +106,16 @@ func (r *Reconciler) delete(ctx context.Context, log logr.Logger, managedSeedSet
 	defer func() {
 		// Only update status if the finalizer is not removed to prevent errors if the object is already gone
 		if !removeFinalizer {
+			if err != nil {
+				r.Recorder.Eventf(managedSeedSet, nil, corev1.EventTypeWarning, gardencorev1beta1.EventReconcileError, "Reconciling", "%s", err.Error())
+			}
+			if status != nil {
+				if err != nil {
+					status.Conditions = updateManagedSeedSetCondition(r.Clock, status.Conditions, gardencorev1beta1.ConditionFalse, gardencorev1beta1.EventReconcileError, err.Error())
+				} else {
+					status.Conditions = updateManagedSeedSetCondition(r.Clock, status.Conditions, gardencorev1beta1.ConditionTrue, gardencorev1beta1.EventReconciled, "ManagedSeedSet has been reconciled successfully.")
+				}
+			}
 			// Update status, on failure return the update error unless there is another error
 			if updateErr := r.updateStatus(ctx, managedSeedSet, status); updateErr != nil && err == nil {
 				err = fmt.Errorf("could not update status: %w", updateErr)
@@ -127,4 +153,10 @@ func (r *Reconciler) updateStatus(ctx context.Context, managedSeedSet *seedmanag
 	patch := client.StrategicMergeFrom(managedSeedSet.DeepCopy())
 	managedSeedSet.Status = *status
 	return r.Client.Status().Patch(ctx, managedSeedSet, patch)
+}
+
+func updateManagedSeedSetCondition(clock clock.Clock, conditions []gardencorev1beta1.Condition, cs gardencorev1beta1.ConditionStatus, reason, message string) []gardencorev1beta1.Condition {
+	condition := v1beta1helper.GetOrInitConditionWithClock(clock, conditions, seedmanagementv1alpha1.ManagedSeedSetReconciled)
+	condition = v1beta1helper.UpdatedConditionWithClock(clock, condition, cs, reason, message)
+	return v1beta1helper.MergeConditions(conditions, condition)
 }
