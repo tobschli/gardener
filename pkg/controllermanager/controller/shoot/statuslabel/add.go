@@ -23,7 +23,7 @@ const ControllerName = "shoot-statuslabel"
 
 // AddToManager adds Reconciler to the given manager.
 func (r *Reconciler) AddToManager(mgr manager.Manager) error {
-	if ptr.Deref(r.Config.ConcurrentSyncs, 0) <= 0 {
+	if ptr.Deref(r.Config.ConcurrentSyncs, 0) == 0 {
 		return nil
 	}
 
