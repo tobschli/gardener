@@ -177,6 +177,9 @@ func ValidateManagedSeedSetSpecUpdate(newSpec, oldSpec *seedmanagement.ManagedSe
 	if newSpec.UpdateStrategy != nil && oldSpec.UpdateStrategy != nil {
 		if newSpec.UpdateStrategy.RollingUpdate != nil && oldSpec.UpdateStrategy.RollingUpdate != nil {
 			if newPartition, oldPartition := newSpec.UpdateStrategy.RollingUpdate.Partition, oldSpec.UpdateStrategy.RollingUpdate.Partition; newPartition != nil && oldPartition != nil {
+				if *newPartition > *newSpec.Replicas {
+					allErrs = append(allErrs, field.Forbidden(fldPath.Child("updateStrategy", "rollingUpdate", "partition"), "partition cannot be greater than replicas"))
+				}
 				if *oldPartition != 0 && *newPartition > *oldPartition {
 					allErrs = append(allErrs, field.Forbidden(fldPath.Child("updateStrategy", "rollingUpdate", "partition"), "partition cannot be increased"))
 				}

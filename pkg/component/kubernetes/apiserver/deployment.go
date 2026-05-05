@@ -435,7 +435,8 @@ func (k *kubeAPIServer) computeKubeAPIServerArgs() []string {
 
 	if k.values.IsWorkerless {
 		disableAPIs := map[string]bool{
-			"apps/v1":                    false,
+			// TODO(tobschli): For virtual-garden-kube-apiserver we should enable this for controller-revision api
+			// "apps/v1":                    false,
 			"autoscaling/v2":             false,
 			"batch/v1":                   false,
 			"policy/v1":                  false,

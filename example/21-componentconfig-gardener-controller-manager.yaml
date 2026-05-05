@@ -7,59 +7,59 @@ gardenClientConnection:
 controllers:
   bastion:
     maxLifetime: 24h
-    concurrentSyncs: 5
+    concurrentSyncs: 0
   certificateSigningRequest:
-    concurrentSyncs: 5
+    concurrentSyncs: 0
   cloudProfile:
-    concurrentSyncs: 5
+    concurrentSyncs: 0
   namespacedCloudProfile:
-    concurrentSyncs: 5
+    concurrentSyncs: 0
   secretBinding:
-    concurrentSyncs: 5
+    concurrentSyncs: 0
   credentialsBinding:
-    concurrentSyncs: 5
+    concurrentSyncs: 0
   seed:
-    concurrentSyncs: 5
+    concurrentSyncs: 0
     syncPeriod: 10s
   # monitorPeriod: 40s
   # shootMonitorPeriod: 300s
   seedExtensionsCheck:
-    concurrentSyncs: 5
+    concurrentSyncs: 0
     syncPeriod: 30s
     conditionThresholds:
       - type: ExtensionsReady
         duration: 1m
   seedBackupBucketsCheck:
-    concurrentSyncs: 5
+    concurrentSyncs: 0
     syncPeriod: 30s
     conditionThresholds:
       - type: BackupBucketsReady
         duration: 1m
   seedReference:
-    concurrentSyncs: 5
+    concurrentSyncs: 0
   shootMaintenance:
-    concurrentSyncs: 5
+    concurrentSyncs: 0
   # enableShootControlPlaneRestarter: true
   # enableShootCoreAddonRestarter: true
   shootHibernation:
-    concurrentSyncs: 5
+    concurrentSyncs: 0
     triggerDeadlineDuration: 2h
   shootQuota:
-    concurrentSyncs: 5
+    concurrentSyncs: 0
     syncPeriod: 60m
   shootReference:
-    concurrentSyncs: 5
+    concurrentSyncs: 0
   shootRetry:
-    concurrentSyncs: 5
+    concurrentSyncs: 0
   # retryDuration: 10m
   shootMigration:
-    concurrentSyncs: 5
+    concurrentSyncs: 0
   shootState:
-    concurrentSyncs: 5
+    concurrentSyncs: 0
   shootStatusLabel:
-    concurrentSyncs: 5
+    concurrentSyncs: 0
   project:
-    concurrentSyncs: 5
+    concurrentSyncs: 0
     minimumLifetimeDays: 30
     staleGracePeriodDays: 14
     staleExpirationTimeDays: 90
@@ -75,18 +75,18 @@ controllers:
   #         count/secrets: "400"
   #   projectSelector: {}
   event:
-    concurrentSyncs: 5
+    concurrentSyncs: 0
     ttlNonShootEvents: 1h
   managedSeedSet:
     concurrentSyncs: 5
   # maxShootRetries: 3
     syncPeriod: 30m
   controllerDeployment:
-    concurrentSyncs: 5
+    concurrentSyncs: 0
   controllerRegistration:
-    concurrentSyncs: 5
+    concurrentSyncs: 0
   exposureClass:
-    concurrentSyncs: 5
+    concurrentSyncs: 0
 leaderElection:
   leaderElect: false
   leaseDuration: 15s

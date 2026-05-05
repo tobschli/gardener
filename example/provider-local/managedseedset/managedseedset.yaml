@@ -5,7 +5,7 @@ metadata:
   name: my-mss
   namespace: garden # Must be garden
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       name: my-managed-seed-set
@@ -45,6 +45,7 @@ spec:
       labels:
         name: my-managed-seed-set
     spec:
+      seedName: local
       dns:
         # "replica-name" in DNS domains will be replaced by the actual replica name
         domain: replica-name.garden.external.local.gardener.cloud

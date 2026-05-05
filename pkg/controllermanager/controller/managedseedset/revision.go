@@ -116,6 +116,7 @@ func listRevisions(ctx context.Context, c client.Client, set *seedmanagementv1al
 	}
 
 	list := &appsv1.ControllerRevisionList{}
+	// TODO(tobschli): Use APIREader to avoid stale reads, leading to multiple revisions with the same revision number
 	if err := c.List(ctx, list, client.InNamespace(set.Namespace), client.MatchingLabelsSelector{Selector: selector}); err != nil {
 		return nil, fmt.Errorf("failed to list ControllerRevisions for ManagedSeedSet %s: %w", client.ObjectKeyFromObject(set), err)
 	}
