@@ -10,21 +10,32 @@ set -o pipefail
 
 export KUBECONFIG="$PWD/dev/envtest-kubeconfig.yaml"
 
-for name in $(kubectl -n garden get managedseed -ojsonpath='{.items[*].metadata.name}'); do
-  managedseed="$(kubectl -n garden get managedseed "$name" -oyaml)"
-  generation="$(echo "$managedseed" | yq '.metadata.generation')"
+repatch=${1:-false}
 
-  kubectl -n garden patch --subresource=status managedseed "$name" --patch-file /dev/stdin <<EOF
+patch_managedseeds() {
+  local ready=$1
+  local condition_status
+  if [[ "$ready" == "true" ]]; then
+    condition_status="True"
+  else
+    condition_status="False"
+  fi
+
+  for name in $(kubectl -n garden get managedseed -ojsonpath='{.items[*].metadata.name}'); do
+    managedseed="$(kubectl -n garden get managedseed "$name" -oyaml)"
+    generation="$(echo "$managedseed" | yq '.metadata.generation')"
+
+    kubectl -n garden patch --subresource=status managedseed "$name" --patch-file /dev/stdin <<EOF
 status:
   observedGeneration: $generation
   conditions:
   - type: SeedRegistered
-    status: "True"
+    status: "$condition_status"
     reason: Reconcile
     message: Reconcile
 EOF
 
-  kubectl -n garden apply -f - <<EOF
+    kubectl -n garden apply -f - <<EOF
 apiVersion: core.gardener.cloud/v1beta1
 kind: Seed
 metadata:
@@ -64,25 +75,32 @@ spec:
       enabled: false
 EOF
 
-  kubectl -n garden patch --subresource=status seed "$name" --patch-file /dev/stdin <<EOF
+    seed_generation="$(kubectl -n garden get seed "$name" -ojsonpath='{.metadata.generation}')"
+    kubectl -n garden patch --subresource=status seed "$name" --patch-file /dev/stdin <<EOF
 status:
-  observedGeneration: $generation
+  observedGeneration: $seed_generation
   conditions:
   - type: GardenletReady
-    status: "True"
+    status: "$condition_status"
     reason: Reconcile
     message: Reconcile
-  - type: SeedBackupBucketsReady
-    status: "True"
+  - type: BackupBucketsReady
+    status: "$condition_status"
     reason: Reconcile
     message: Reconcile
   - type: SeedSystemComponentsHealthy
-    status: "True"
+    status: "$condition_status"
     reason: Reconcile
     message: Reconcile
   - type: ExtensionsReady
-    status: "True"
+    status: "$condition_status"
     reason: Reconcile
     message: Reconcile
 EOF
-done
+  done
+}
+
+if [[ "$repatch" == "true" ]]; then
+  patch_managedseeds false
+fi
+patch_managedseeds true

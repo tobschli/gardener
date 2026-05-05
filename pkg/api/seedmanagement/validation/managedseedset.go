@@ -288,6 +288,7 @@ func validatePendingReplica(pendingReplica *seedmanagement.PendingReplica, name 
 		string(seedmanagement.ShootReconcileFailedReason),
 		string(seedmanagement.ShootDeleteFailedReason),
 		string(seedmanagement.ManagedSeedPreparingReason),
+		string(seedmanagement.ManagedSeedUpdatingReason),
 		string(seedmanagement.ManagedSeedDeletingReason),
 		string(seedmanagement.SeedNotReadyReason),
 		string(seedmanagement.ShootNotHealthyReason),

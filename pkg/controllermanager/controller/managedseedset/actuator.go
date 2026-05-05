@@ -519,7 +519,8 @@ func getPartition(managedSeedSet *seedmanagementv1alpha1.ManagedSeedSet) int32 {
 	return 0
 }
 
-func (a *actuator) infoEventf(managedSeedSet *seedmanagementv1alpha1.ManagedSeedSet, reason, action, fmt string, args ...any) {	a.recorder.Eventf(managedSeedSet, nil, corev1.EventTypeNormal, reason, action, fmt, args...)
+func (a *actuator) infoEventf(managedSeedSet *seedmanagementv1alpha1.ManagedSeedSet, reason, action, fmt string, args ...any) {
+	a.recorder.Eventf(managedSeedSet, nil, corev1.EventTypeNormal, reason, action, fmt, args...)
 }
 
 func (a *actuator) errorEventf(managedSeedSet *seedmanagementv1alpha1.ManagedSeedSet, reason, action, fmt string, args ...any) {
