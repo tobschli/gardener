@@ -253,8 +253,35 @@ func revisionHashFromName(revisionName, setName string) string {
 	return ""
 }
 
+// mssFromRevision returns a copy of set with Template and ShootTemplate overridden from the
+// given ControllerRevision's data. Used to reconstruct the desired spec for below-partition replicas.
+func mssFromRevision(set *seedmanagementv1alpha1.ManagedSeedSet, revision *appsv1.ControllerRevision) (*seedmanagementv1alpha1.ManagedSeedSet, error) {
+	var patch mssRevisionPatch
+	if err := json.Unmarshal(revision.Data.Raw, &patch); err != nil {
+		return nil, fmt.Errorf("failed to decode ControllerRevision %s: %w", revision.Name, err)
+	}
+
+	// Re-encode the template fields and decode into the typed structs.
+	templateBytes, err := json.Marshal(patch.Spec.Template)
+	if err != nil {
+		return nil, fmt.Errorf("failed to re-encode template from revision %s: %w", revision.Name, err)
+	}
+	shootTemplateBytes, err := json.Marshal(patch.Spec.ShootTemplate)
+	if err != nil {
+		return nil, fmt.Errorf("failed to re-encode shootTemplate from revision %s: %w", revision.Name, err)
+	}
+
+	out := set.DeepCopy()
+	if err := json.Unmarshal(templateBytes, &out.Spec.Template); err != nil {
+		return nil, fmt.Errorf("failed to decode template from revision %s: %w", revision.Name, err)
+	}
+	if err := json.Unmarshal(shootTemplateBytes, &out.Spec.ShootTemplate); err != nil {
+		return nil, fmt.Errorf("failed to decode shootTemplate from revision %s: %w", revision.Name, err)
+	}
+	return out, nil
+}
+
 // getMSSRevisions computes the current and update ControllerRevisions for set. It mirrors
-// the getStatefulSetRevisions logic from the Kubernetes StatefulSet controller:
 //
 //  1. Build a candidate updateRevision from the current spec templates.
 //  2. Search the existing revision history for an equal entry.

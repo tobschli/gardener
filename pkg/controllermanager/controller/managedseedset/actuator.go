@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/go-logr/logr"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/events"
@@ -191,6 +192,13 @@ func (a *actuator) Reconcile(ctx context.Context, log logr.Logger, managedSeedSe
 		}
 	}
 
+	// Enforce spec on all stable replicas (those on the correct revision hash). Replicas at or
+	// above the partition get the live template; replicas below the partition get the historical
+	// template from the current ControllerRevision. This corrects any manual drift.
+	if patched, err := a.enforceReplicaSpecs(ctx, managedSeedSet, replicas, pendingReplica, status.CurrentRevision, updateRevisionHash, currentRevisionHash); err != nil || patched {
+		return status, false, err
+	}
+
 	// Rolling update: if the spec changed (UpdateRevision != CurrentRevision), update one replica at a
 	// time starting from the highest ordinal, exactly like the Kubernetes StatefulSet controller.
 	if status.UpdateRevision != status.CurrentRevision || ptr.Deref(status.UpdatedPartition, 0) != getPartition(managedSeedSet) {
@@ -350,6 +358,70 @@ func (a *actuator) reconcileReplica(
 	}
 
 	return false, nil
+}
+
+// enforceReplicaSpecs ensures every replica's shoot and managed seed spec matches the desired
+// template for its revision: replicas at or above the partition use the update revision (live
+// template), replicas below the partition use the current revision (historical template).
+// Returns true if any patch was sent so the caller can requeue and let things settle.
+func (a *actuator) enforceReplicaSpecs(
+	ctx context.Context,
+	managedSeedSet *seedmanagementv1alpha1.ManagedSeedSet,
+	replicas []Replica,
+	pendingReplica Replica,
+	currentRevisionName, updateRevisionHash, currentRevisionHash string,
+) (bool, error) {
+	partition := getPartition(managedSeedSet)
+
+	// Only fetch the historical set if there are below-partition replicas and revisions differ.
+	var currentSet *seedmanagementv1alpha1.ManagedSeedSet
+	if currentRevisionHash != updateRevisionHash {
+		cr := &appsv1.ControllerRevision{}
+		if err := a.gardenClient.Get(ctx, client.ObjectKey{Namespace: managedSeedSet.Namespace, Name: currentRevisionName}, cr); err != nil {
+			return false, fmt.Errorf("failed to get current ControllerRevision %s: %w", currentRevisionName, err)
+		}
+		var err error
+		currentSet, err = mssFromRevision(managedSeedSet, cr)
+		if err != nil {
+			return false, err
+		}
+	}
+
+	patched := false
+	for _, r := range replicas {
+		if r == pendingReplica {
+			continue
+		}
+
+		var targetSet *seedmanagementv1alpha1.ManagedSeedSet
+		var expectedHash string
+		if r.GetOrdinal() >= partition || currentSet == nil {
+			targetSet = managedSeedSet
+			expectedHash = updateRevisionHash
+		} else {
+			targetSet = currentSet
+			expectedHash = currentRevisionHash
+		}
+
+		if r.GetRevisionHash() != expectedHash {
+			// Revision hash mismatch is handled by the rolling update path.
+			continue
+		}
+
+		// Hash matches — enforce the spec. UpdateShoot/UpdateManagedSeed use MergeFrom so they
+		// only send a patch when something actually changed.
+		shootR := a.replicaFactory.NewReplica(targetSet, r.GetShoot(), r.GetManagedSeed(), nil, false)
+		if err := shootR.UpdateShoot(ctx, a.gardenClient, expectedHash); err != nil {
+			return false, fmt.Errorf("failed to enforce shoot spec for replica %s: %w", r.GetFullName(), err)
+		}
+		if r.GetStatus() >= StatusManagedSeedPreparing {
+			if err := shootR.UpdateManagedSeed(ctx, a.gardenClient, expectedHash); err != nil {
+				return false, fmt.Errorf("failed to enforce managed seed spec for replica %s: %w", r.GetFullName(), err)
+			}
+		}
+		patched = true
+	}
+	return patched, nil
 }
 
 func (a *actuator) createReplica(

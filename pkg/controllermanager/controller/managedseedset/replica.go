@@ -94,6 +94,10 @@ type Replica interface {
 	// IsDeletable returns true if this replica can be deleted, false otherwise. A replica can be deleted if it has no
 	// scheduled shoots and is not protected by the "protect-from-deletion" annotation.
 	IsDeletable() bool
+	// GetShoot returns this replica's shoot, or nil if it doesn't exist yet.
+	GetShoot() *gardencorev1beta1.Shoot
+	// GetManagedSeed returns this replica's managed seed, or nil if it doesn't exist yet.
+	GetManagedSeed() *seedmanagementv1alpha1.ManagedSeed
 	// IsShootReconcileSucceeded returns true when the replica's shoot has been fully reconciled at its
 	// current generation (i.e., generation == observedGeneration and last operation succeeded).
 	// This differs from GetStatus() == StatusShootReconciled: it also returns true when the managed
@@ -245,6 +249,16 @@ func (r *replica) GetShootHealthStatus() gardenerutils.ShootStatus {
 		return gardenerutils.ShootStatusUnhealthy
 	}
 	return shootHealthStatus(r.shoot)
+}
+
+// GetShoot returns this replica's shoot, or nil if it doesn't exist yet.
+func (r *replica) GetShoot() *gardencorev1beta1.Shoot {
+	return r.shoot
+}
+
+// GetManagedSeed returns this replica's managed seed, or nil if it doesn't exist yet.
+func (r *replica) GetManagedSeed() *seedmanagementv1alpha1.ManagedSeed {
+	return r.managedSeed
 }
 
 // IsDeletable returns true if this replica can be deleted, false otherwise. A replica can be deleted if it has no
