@@ -133,6 +133,8 @@ type ManagedSeedSetStatus struct {
 	// This replica is in a state that requires the controller to wait for it to change before advancing to the next replica.
 	// +optional
 	PendingReplica *PendingReplica `json:"pendingReplica,omitempty" protobuf:"bytes,11,opt,name=pendingReplica"`
+	// TODO(tobschli): Naming things is hard
+	UpdatedPartition *int32 `json:"updatedPartition,omitempty" protobuf:"varint,12,opt,name=updatedPartition"`
 }
 
 // PendingReplicaReason is a string enumeration type that enumerates all possible reasons for a replica to be pending.

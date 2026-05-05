@@ -171,8 +171,18 @@ func ValidateManagedSeedSetSpecUpdate(newSpec, oldSpec *seedmanagement.ManagedSe
 	// Ensure selector is not changed
 	allErrs = append(allErrs, apivalidation.ValidateImmutableField(newSpec.Selector, oldSpec.Selector, fldPath.Child("selector"))...)
 
-	// Ensure revisionHistoryLimit is not changed
-	allErrs = append(allErrs, apivalidation.ValidateImmutableField(newSpec.RevisionHistoryLimit, oldSpec.RevisionHistoryLimit, fldPath.Child("revisionHistoryLimit"))...)
+	// ValidateUpdateStrategy
+	// TODO(tobschli): Make beautiful later
+	// TODO(tobschli): We should also check if the rollout is complete.
+	if newSpec.UpdateStrategy != nil && oldSpec.UpdateStrategy != nil {
+		if newSpec.UpdateStrategy.RollingUpdate != nil && oldSpec.UpdateStrategy.RollingUpdate != nil {
+			if newPartition, oldPartition := newSpec.UpdateStrategy.RollingUpdate.Partition, oldSpec.UpdateStrategy.RollingUpdate.Partition; newPartition != nil && oldPartition != nil {
+				if *oldPartition != 0 && *newPartition > *oldPartition {
+					allErrs = append(allErrs, field.Forbidden(fldPath.Child("updateStrategy", "rollingUpdate", "partition"), "partition cannot be increased"))
+				}
+			}
+		}
+	}
 
 	// Validate updates to template and shootTemplate
 	allErrs = append(allErrs, ValidateManagedSeedTemplateUpdate(&newSpec.Template, &oldSpec.Template, fldPath.Child("template"))...)

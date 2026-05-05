@@ -33,6 +33,9 @@ func SetDefaults_UpdateStrategy(obj *UpdateStrategy) {
 		t := RollingUpdateStrategyType
 		obj.Type = &t
 	}
+	if *obj.Type == RollingUpdateStrategyType && obj.RollingUpdate == nil {
+		obj.RollingUpdate = &RollingUpdateStrategy{}
+	}
 }
 
 // SetDefaults_RollingUpdateStrategy sets default values for RollingUpdateStrategy objects.

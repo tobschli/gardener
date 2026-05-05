@@ -9,8 +9,8 @@ import (
 	"fmt"
 
 	"github.com/go-logr/logr"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/tools/events"
 	"k8s.io/utils/clock"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -18,8 +18,8 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	controllermanagerconfigv1alpha1 "github.com/gardener/gardener/pkg/apis/config/controllermanager/v1alpha1"
 	v1beta1helper "github.com/gardener/gardener/pkg/api/core/v1beta1/helper"
+	controllermanagerconfigv1alpha1 "github.com/gardener/gardener/pkg/apis/config/controllermanager/v1alpha1"
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	seedmanagementv1alpha1 "github.com/gardener/gardener/pkg/apis/seedmanagement/v1alpha1"
 	"github.com/gardener/gardener/pkg/controllerutils"
@@ -81,11 +81,11 @@ func (r *Reconciler) reconcile(ctx context.Context, log logr.Logger, managedSeed
 	}()
 
 	// Reconcile creation or update
-	log.V(1).Info("Reconciling creation or update")
+	log.Info("Reconciling creation or update")
 	if status, _, err = r.Actuator.Reconcile(ctx, log, managedSeedSet); err != nil {
 		return reconcile.Result{}, fmt.Errorf("could not reconcile ManagedSeedSet %s creation or update: %w", client.ObjectKeyFromObject(managedSeedSet), err)
 	}
-	log.V(1).Info("Creation or update reconciled")
+	log.Info("Creation or update reconciled")
 
 	// Return success result
 	return reconcile.Result{RequeueAfter: r.Config.SyncPeriod.Duration}, nil

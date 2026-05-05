@@ -64,6 +64,9 @@ func (a *actuator) Reconcile(ctx context.Context, log logr.Logger, managedSeedSe
 	// Initialize status
 	status = managedSeedSet.Status.DeepCopy()
 	status.ObservedGeneration = managedSeedSet.Generation
+	if status.UpdatedPartition == nil {
+		status.UpdatedPartition = ptr.To(ptr.Deref(managedSeedSet.Spec.Replicas, 1))
+	}
 
 	defer func() {
 		if err != nil {
@@ -190,7 +193,7 @@ func (a *actuator) Reconcile(ctx context.Context, log logr.Logger, managedSeedSe
 
 	// Rolling update: if the spec changed (UpdateRevision != CurrentRevision), update one replica at a
 	// time starting from the highest ordinal, exactly like the Kubernetes StatefulSet controller.
-	if status.UpdateRevision != status.CurrentRevision {
+	if status.UpdateRevision != status.CurrentRevision || ptr.Deref(status.UpdatedPartition, 0) != getPartition(managedSeedSet) {
 		if pending, err := a.performRollingUpdate(ctx, log, managedSeedSet, status, replicas, updateRevisionHash); err != nil || pending {
 			return status, false, err
 		}
@@ -505,6 +508,7 @@ func (a *actuator) performRollingUpdate(
 	// is complete; advance CurrentRevision so getMSSRevisions treats this as stable.
 	log.Info("Rolling update complete, advancing CurrentRevision", "revision", status.UpdateRevision)
 	status.CurrentRevision = status.UpdateRevision
+	status.UpdatedPartition = ptr.To(getPartition(managedSeedSet))
 	return false, nil
 }
 
